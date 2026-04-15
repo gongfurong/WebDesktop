@@ -2,6 +2,10 @@
 
 一个可安装、可离线运行、可作为桌面或主屏幕入口使用的轻量网页游戏示例。
 
+一个用于探索 Web 应用桌面化、PWA 安装流程、本地 HTTPS 证书、以及面向人类与 AI 的文档体系设计的示例仓库。
+
+An example repository for exploring web-to-desktop app flows, PWA installation paths, local HTTPS certificate tooling, and documentation design for both humans and AI.
+
 ## 文档入口
 
 - 启动说明：见本文档
