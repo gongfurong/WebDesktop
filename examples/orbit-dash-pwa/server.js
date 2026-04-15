@@ -5,8 +5,10 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const zlib = require("zlib");
+const { spawnSync } = require("child_process");
 
-const port = process.env.PORT || 4173;
+const preferredHttpsPort = Number(process.env.PORT || 4173);
+const preferredHttpPort = Number(process.env.HTTP_PORT || 4174);
 const root = __dirname;
 const certDir = path.join(root, "certs");
 const rootCaPath = path.join(certDir, "root-ca-cert.cer");
@@ -22,17 +24,19 @@ const mimeTypes = {
   ".png": "image/png",
 };
 
+function getCacheControl(ext, requestPath) {
+  if ([".html", ".js", ".css", ".json"].includes(ext) || requestPath === "/sw.js") {
+    return "no-store";
+  }
+  return "public, max-age=3600";
+}
+
 const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 const crcTable = buildCrcTable();
 const iconCache = new Map();
 
 function escapeXml(value) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&apos;");
 }
 
 function createMobileConfig(host) {
@@ -69,7 +73,7 @@ function createMobileConfig(host) {
     <key>PayloadDescription</key>
     <string>Installs the Orbit Dash local root certificate for ${safeHost}. After installation, enable full trust in Settings.</string>
     <key>PayloadDisplayName</key>
-    <string>Orbit Dash iPhone Certificate</string>
+    <string>Orbit Dash iOS Certificate</string>
     <key>PayloadIdentifier</key>
     <string>com.orbitdash.profile.${profileUuid}</string>
     <key>PayloadOrganization</key>
@@ -125,7 +129,6 @@ function fillCircle(pixelData, size, cx, cy, radius, color) {
   const maxX = Math.min(size - 1, Math.ceil(cx + radius));
   const minY = Math.max(0, Math.floor(cy - radius));
   const maxY = Math.min(size - 1, Math.ceil(cy + radius));
-
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const dx = x - cx;
@@ -148,7 +151,6 @@ function fillRing(pixelData, size, cx, cy, radius, thickness, color) {
   const maxX = Math.min(size - 1, Math.ceil(cx + radius));
   const minY = Math.max(0, Math.floor(cy - radius));
   const maxY = Math.min(size - 1, Math.ceil(cy + radius));
-
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const dx = x - cx;
@@ -175,7 +177,6 @@ function fillRotatedRect(pixelData, size, cx, cy, width, height, angle, color) {
   const maxX = Math.min(size - 1, Math.ceil(cx + radius));
   const minY = Math.max(0, Math.floor(cy - radius));
   const maxY = Math.min(size - 1, Math.ceil(cy + radius));
-
   for (let y = minY; y <= maxY; y += 1) {
     for (let x = minX; x <= maxX; x += 1) {
       const localX = (x - cx) * cos + (y - cy) * sin;
@@ -195,9 +196,7 @@ function createIconPng(size) {
   if (iconCache.has(size)) {
     return iconCache.get(size);
   }
-
   const pixels = Buffer.alloc(size * size * 4);
-
   for (let y = 0; y < size; y += 1) {
     for (let x = 0; x < size; x += 1) {
       const offset = (y * size + x) * 4;
@@ -209,7 +208,6 @@ function createIconPng(size) {
       pixels[offset + 3] = 255;
     }
   }
-
   const center = size / 2;
   fillRing(pixels, size, center, center, size * 0.33, size * 0.03, [124, 155, 255, 255]);
   fillCircle(pixels, size, center, center, size * 0.09, [157, 255, 218, 255]);
@@ -224,25 +222,122 @@ function createIconPng(size) {
     raw[rowStart] = 0;
     pixels.copy(raw, rowStart + 1, y * size * 4, (y + 1) * size * 4);
   }
-
   const header = Buffer.alloc(13);
   header.writeUInt32BE(size, 0);
   header.writeUInt32BE(size, 4);
   header[8] = 8;
   header[9] = 6;
-  header[10] = 0;
-  header[11] = 0;
-  header[12] = 0;
-
   const png = Buffer.concat([
     pngSignature,
     createChunk("IHDR", header),
     createChunk("IDAT", zlib.deflateSync(raw)),
     createChunk("IEND", Buffer.alloc(0)),
   ]);
-
   iconCache.set(size, png);
   return png;
+}
+
+function getAltNames() {
+  const names = new Set(["localhost", os.hostname()]);
+  const ipAddresses = ["127.0.0.1"];
+  for (const addresses of Object.values(os.networkInterfaces())) {
+    if (!addresses) continue;
+    for (const address of addresses) {
+      if (address.family === "IPv4" && !address.internal && !address.address.startsWith("169.254.")) {
+        ipAddresses.push(address.address);
+      }
+    }
+  }
+  return {
+    dns: [...names].filter(Boolean),
+    ips: [...new Set(ipAddresses)],
+  };
+}
+
+function ensureCertificateDirectory() {
+  fs.mkdirSync(certDir, { recursive: true });
+}
+
+function writeOpenSslConfigs() {
+  const { dns, ips } = getAltNames();
+  const rootConfigPath = path.join(certDir, "openssl-root.cnf");
+  const serverConfigPath = path.join(certDir, "openssl-local.cnf");
+  const serverExtPath = path.join(certDir, "openssl-local.ext");
+  const altNames = [];
+  dns.forEach((name, index) => altNames.push(`DNS.${index + 1} = ${name}`));
+  ips.forEach((ip, index) => altNames.push(`IP.${index + 1} = ${ip}`));
+
+  fs.writeFileSync(rootConfigPath, `[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_ca
+
+[dn]
+CN = Orbit Dash Local Root CA
+O = Orbit Dash
+
+[v3_ca]
+basicConstraints = critical, CA:true
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+`, "ascii");
+  fs.writeFileSync(serverConfigPath, `[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = dn
+
+[dn]
+CN = Orbit Dash Local Dev
+O = Orbit Dash
+`, "ascii");
+  fs.writeFileSync(serverExtPath, `[v3_req]
+subjectAltName = @alt_names
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+basicConstraints = critical, CA:FALSE
+
+[alt_names]
+${altNames.join("\n")}
+`, "ascii");
+
+  return { rootConfigPath, serverConfigPath, serverExtPath };
+}
+
+function runOpenSsl(args, description) {
+  const result = spawnSync("openssl", args, { stdio: "pipe", encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(`${description} failed: ${result.stderr || result.stdout || "unknown error"}`);
+  }
+}
+
+function ensureLocalCertificates() {
+  if (fs.existsSync(keyPath) && fs.existsSync(certPath) && fs.existsSync(rootCaPath)) {
+    return true;
+  }
+
+  try {
+    ensureCertificateDirectory();
+    const { rootConfigPath, serverConfigPath, serverExtPath } = writeOpenSslConfigs();
+    const rootKeyPath = path.join(certDir, "root-ca-key.pem");
+    const rootCertPemPath = path.join(certDir, "root-ca-cert.pem");
+    const localCerPath = path.join(certDir, "local-cert.cer");
+    const csrPath = path.join(certDir, "local-cert.csr");
+
+    runOpenSsl(["req", "-x509", "-nodes", "-newkey", "rsa:2048", "-keyout", rootKeyPath, "-out", rootCertPemPath, "-days", "3650", "-config", rootConfigPath, "-extensions", "v3_ca"], "root certificate generation");
+    runOpenSsl(["x509", "-in", rootCertPemPath, "-outform", "der", "-out", rootCaPath], "root certificate export");
+    runOpenSsl(["req", "-nodes", "-newkey", "rsa:2048", "-keyout", keyPath, "-out", csrPath, "-config", serverConfigPath], "site csr generation");
+    runOpenSsl(["x509", "-req", "-in", csrPath, "-CA", rootCertPemPath, "-CAkey", rootKeyPath, "-CAcreateserial", "-out", certPath, "-days", "825", "-sha256", "-extfile", serverExtPath, "-extensions", "v3_req"], "site certificate signing");
+    runOpenSsl(["x509", "-in", certPath, "-outform", "der", "-out", localCerPath], "site certificate export");
+    return true;
+  } catch (error) {
+    console.warn("HTTPS certificate auto-generation failed.");
+    console.warn(String(error.message || error));
+    return false;
+  }
 }
 
 function handleRequest(req, res) {
@@ -254,7 +349,6 @@ function handleRequest(req, res) {
       res.end("Not found");
       return;
     }
-
     res.writeHead(200, {
       "Content-Type": "application/pkix-cert",
       "Content-Disposition": 'attachment; filename="root-ca-cert.cer"',
@@ -270,7 +364,6 @@ function handleRequest(req, res) {
       res.end("Not found");
       return;
     }
-
     const mobileConfig = createMobileConfig(req.headers.host);
     res.writeHead(200, {
       "Content-Type": "application/x-apple-aspen-config; charset=utf-8",
@@ -294,7 +387,6 @@ function handleRequest(req, res) {
 
   const decodedPath = decodeURIComponent(requestPath);
   const safePath = path.normalize(decodedPath).replace(/^[/\\]+/, "");
-
   if (safePath === "certs" || safePath.startsWith(`certs${path.sep}`) || safePath === "scripts" || safePath.startsWith(`scripts${path.sep}`)) {
     res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("Forbidden");
@@ -302,9 +394,8 @@ function handleRequest(req, res) {
   }
 
   const filePath = path.join(root, safePath);
-
   if (!filePath.startsWith(root)) {
-    res.writeHead(403);
+    res.writeHead(403, { "Content-Type": "text/plain; charset=utf-8" });
     res.end("Forbidden");
     return;
   }
@@ -315,54 +406,102 @@ function handleRequest(req, res) {
       res.end("Not found");
       return;
     }
-
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, {
       "Content-Type": mimeTypes[ext] || "application/octet-stream",
-      "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=3600",
+      "Cache-Control": getCacheControl(ext, requestPath),
     });
     res.end(data);
   });
 }
 
-const hasHttpsCert = fs.existsSync(keyPath) && fs.existsSync(certPath);
-
-const server = hasHttpsCert
-  ? https.createServer(
-      {
-        key: fs.readFileSync(keyPath),
-        cert: fs.readFileSync(certPath),
-      },
-      handleRequest,
-    )
-  : http.createServer(handleRequest);
-
-server.listen(port, () => {
-  const interfaces = os.networkInterfaces();
-  const lanUrls = [];
-  const protocol = hasHttpsCert ? "https" : "http";
-
-  for (const addresses of Object.values(interfaces)) {
-    if (!addresses) {
-      continue;
-    }
+function getLanHosts() {
+  const hosts = [];
+  for (const addresses of Object.values(os.networkInterfaces())) {
+    if (!addresses) continue;
     for (const address of addresses) {
       if (address.family === "IPv4" && !address.internal) {
-        lanUrls.push(`${protocol}://${address.address}:${port}`);
+        hosts.push(address.address);
       }
     }
   }
+  return [...new Set(hosts)];
+}
 
-  console.log(`Orbit Dash running at ${protocol}://localhost:${port}`);
-  for (const url of lanUrls) {
-    console.log(`LAN access: ${url}`);
+function listenWithFallback(server, preferredPort, label, maxAttempts = 20) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    let currentPort = preferredPort;
+
+    const tryListen = () => {
+      attempts += 1;
+      server.once("error", onError);
+      server.listen(currentPort, () => {
+        server.removeListener("error", onError);
+        resolve(currentPort);
+      });
+    };
+
+    const onError = (error) => {
+      server.removeListener("error", onError);
+      if (error.code === "EADDRINUSE" && attempts < maxAttempts) {
+        currentPort += 1;
+        setImmediate(tryListen);
+        return;
+      }
+
+      reject(new Error(`${label} failed to bind after ${attempts} attempt(s): ${error.message}`));
+    };
+
+    tryListen();
+  });
+}
+
+function printAccessUrls(protocol, port, label) {
+  console.log(`${label}: ${protocol}://localhost:${port}`);
+  for (const host of getLanHosts()) {
+    console.log(`${label}: ${protocol}://${host}:${port}`);
+  }
+}
+
+const hasHttpsCert = ensureLocalCertificates() && fs.existsSync(keyPath) && fs.existsSync(certPath);
+
+const mainServer = hasHttpsCert
+  ? https.createServer({ key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath) }, handleRequest)
+  : http.createServer(handleRequest);
+
+async function start() {
+  const protocol = hasHttpsCert ? "https" : "http";
+  const mainPort = await listenWithFallback(mainServer, preferredHttpsPort, `${protocol.toUpperCase()} server`);
+
+  console.log(`Orbit Dash main server ready.`);
+  printAccessUrls(protocol, mainPort, protocol.toUpperCase());
+
+  if (!hasHttpsCert) {
+    console.log("HTTPS unavailable, falling back to HTTP only.");
+    return;
   }
 
-  if (hasHttpsCert) {
-    console.log(`TLS certificate: ${certPath}`);
-    console.log(`Root CA for trust: ${rootCaPath}`);
-    console.log("If Safari still warns, install and trust certs/root-ca-cert.cer on the device.");
-  } else {
-    console.log("HTTPS disabled: generate certs with powershell -ExecutionPolicy Bypass -File .\\scripts\\generate-cert.ps1");
+  console.log(`TLS certificate: ${certPath}`);
+  console.log(`Root CA for trust: ${rootCaPath}`);
+
+  let helperPort = preferredHttpPort === mainPort ? mainPort + 1 : preferredHttpPort;
+  const helperServer = http.createServer((req, res) => {
+    const hostHeader = req.headers.host || `localhost:${helperPort}`;
+    const host = hostHeader.replace(/:\d+$/, "");
+    res.writeHead(302, { Location: `https://${host}:${mainPort}${req.url || "/"}` });
+    res.end();
+  });
+
+  helperPort = await listenWithFallback(helperServer, helperPort, "HTTP redirect helper");
+  printAccessUrls("http", helperPort, "HTTP helper");
+
+  if (mainPort !== preferredHttpsPort || helperPort !== preferredHttpPort) {
+    console.log(`Port adjustment: preferred HTTPS ${preferredHttpsPort}, actual HTTPS ${mainPort}; preferred HTTP ${preferredHttpPort}, actual HTTP ${helperPort}.`);
   }
+}
+
+start().catch((error) => {
+  console.error(String(error.message || error));
+  process.exitCode = 1;
 });

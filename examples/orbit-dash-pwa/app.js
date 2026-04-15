@@ -5,66 +5,43 @@ const scoreEl = document.getElementById("score");
 const bestScoreEl = document.getElementById("bestScore");
 const gameStateEl = document.getElementById("gameState");
 const startButton = document.getElementById("startButton");
-const installButton = document.getElementById("installButton");
 const installHint = document.getElementById("installHint");
-const installGuide = document.getElementById("installGuide");
-const installSteps = document.getElementById("installSteps");
-const platformBadge = document.getElementById("platformBadge");
-const runtimePlatformEl = document.getElementById("runtimePlatform");
-const runtimeBrowserEl = document.getElementById("runtimeBrowser");
-const runtimeSupportEl = document.getElementById("runtimeSupport");
-const runtimeProtocolEl = document.getElementById("runtimeProtocol");
-const runtimeSecureContextEl = document.getElementById("runtimeSecureContext");
-const runtimeDisplayModeEl = document.getElementById("runtimeDisplayMode");
-const runtimeInstallPromptEl = document.getElementById("runtimeInstallPrompt");
-const runtimeServiceWorkerEl = document.getElementById("runtimeServiceWorker");
-const runtimeTouchEl = document.getElementById("runtimeTouch");
-const debugDetailsEl = document.getElementById("debugDetails");
-const copyDebugButton = document.getElementById("copyDebugButton");
-const mainPathTitleEl = document.getElementById("mainPathTitle");
-const mainPathTextEl = document.getElementById("mainPathText");
-const fallbackPathTitleEl = document.getElementById("fallbackPathTitle");
-const fallbackPathTextEl = document.getElementById("fallbackPathText");
-const avoidPathTitleEl = document.getElementById("avoidPathTitle");
-const avoidPathTextEl = document.getElementById("avoidPathText");
-const nextActionLeadEl = document.getElementById("nextActionLead");
-const primaryActionButton = document.getElementById("primaryActionButton");
-const secondaryActionButton = document.getElementById("secondaryActionButton");
-const certificateGuide = document.getElementById("certificateGuide");
-const certificateBadge = document.getElementById("certificateBadge");
-const certificateLead = document.getElementById("certificateLead");
-const certificateSteps = document.getElementById("certificateSteps");
-const downloadCertButton = document.getElementById("downloadCertButton");
-const refreshTrustButton = document.getElementById("refreshTrustButton");
-const desktopGuide = document.getElementById("desktopGuide");
-const desktopBadge = document.getElementById("desktopBadge");
-const desktopLead = document.getElementById("desktopLead");
-const desktopSteps = document.getElementById("desktopSteps");
-const desktopCommands = document.getElementById("desktopCommands");
-const copyDesktopCommandsButton = document.getElementById("copyDesktopCommandsButton");
 const leftButton = document.getElementById("leftButton");
 const rightButton = document.getElementById("rightButton");
 
-const bestScoreKey = "orbit-dash-best-score";
+const supportPill = document.getElementById("supportPill");
+const securityPill = document.getElementById("securityPill");
+const platformPill = document.getElementById("platformPill");
 
-const userAgent = navigator.userAgent;
+const openInstallButton = document.getElementById("openInstallButton");
+const openTrustButton = document.getElementById("openTrustButton");
+const openSettingsButton = document.getElementById("openSettingsButton");
+
+const modalRoot = document.getElementById("modalRoot");
+const modalEyebrow = document.getElementById("modalEyebrow");
+const modalTitle = document.getElementById("modalTitle");
+const modalContent = document.getElementById("modalContent");
+const modalActions = document.getElementById("modalActions");
+const closeModalButton = document.getElementById("closeModalButton");
+
+const bestScoreKey = "orbit-dash-best-score";
 const displayModeStandalone = window.matchMedia("(display-mode: standalone)");
+const userAgent = navigator.userAgent;
+
 const platform = {
   isIOS:
     /iPhone|iPad|iPod/i.test(userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1),
   isAndroid: /Android/i.test(userAgent),
-  isSafari: /Safari/i.test(userAgent) && !/Chrome|Chromium|CriOS|Edg|OPR|FxiOS/i.test(userAgent),
   isTouch: window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0,
 };
 
 platform.isWindows = /Windows/i.test(userAgent);
 platform.isMac = /Macintosh|Mac OS X/i.test(userAgent) && !platform.isIOS;
 platform.isLinux = /Linux/i.test(userAgent) && !platform.isAndroid;
-platform.browser = detectBrowser();
-
 platform.isMobile = platform.isIOS || platform.isAndroid || window.innerWidth <= 820;
 platform.isStandalone = displayModeStandalone.matches || window.navigator.standalone === true;
+platform.browser = detectBrowser();
 
 const state = {
   running: false,
@@ -86,60 +63,6 @@ const state = {
 
 bestScoreEl.textContent = String(state.bestScore);
 
-function escapeHtml(value) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function setInstallGuide(badgeText, steps) {
-  platformBadge.textContent = badgeText;
-  installSteps.innerHTML = steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
-  installGuide.hidden = steps.length === 0;
-}
-
-function setCertificateGuide(badgeText, leadText, steps, visible) {
-  certificateBadge.textContent = badgeText;
-  certificateLead.textContent = leadText;
-  certificateSteps.innerHTML = steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
-  certificateGuide.hidden = !visible;
-}
-
-function setDesktopGuide(badgeText, leadText, steps, commands) {
-  desktopBadge.textContent = badgeText;
-  desktopLead.textContent = leadText;
-  desktopSteps.innerHTML = steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
-  desktopGuide.hidden = steps.length === 0 && !commands;
-  desktopCommands.hidden = !commands;
-  desktopCommands.textContent = commands || "";
-  copyDesktopCommandsButton.hidden = !commands;
-}
-
-function setDecisionCard(titleEl, textEl, title, text) {
-  titleEl.textContent = title;
-  textEl.textContent = text;
-}
-
-function setChipTone(element, tone) {
-  element.classList.remove("tone-strong", "tone-medium", "tone-weak", "tone-neutral");
-  element.classList.add(tone || "tone-neutral");
-}
-
-async function copyText(text, successMessage) {
-  if (!text) {
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(text);
-    installHint.textContent = successMessage;
-  } catch {
-    installHint.textContent = "复制失败，请手动选中复制。";
-  }
-}
-
 function detectBrowser() {
   if (/Edg/i.test(userAgent)) {
     return "Edge";
@@ -147,19 +70,25 @@ function detectBrowser() {
   if (/OPR|Opera/i.test(userAgent)) {
     return "Opera";
   }
-  if (/Brave/i.test(navigator.userAgentData?.brands?.map((brand) => brand.brand).join(" ") || "")) {
-    return "Brave";
-  }
   if (/Firefox|FxiOS/i.test(userAgent)) {
     return "Firefox";
   }
   if (/Chrome|Chromium|CriOS/i.test(userAgent) && !/Edg|OPR/i.test(userAgent)) {
     return navigator.brave ? "Brave" : "Chrome";
   }
-  if (platform.isSafari) {
+  if (/Safari/i.test(userAgent) && !/Chrome|Chromium|CriOS|Edg|OPR|FxiOS/i.test(userAgent)) {
     return "Safari";
   }
   return "Other";
+}
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function describePlatform() {
@@ -181,41 +110,6 @@ function describePlatform() {
   return platform.isMobile ? "移动设备" : "桌面设备";
 }
 
-function getSupportLevel(secureContext) {
-  if (platform.isIOS) {
-    return "主屏幕路径";
-  }
-  if (platform.isAndroid) {
-    return secureContext ? (state.deferredPrompt ? "安装支持强" : "菜单安装") : "仅临时访问";
-  }
-  if (platform.browser === "Chrome" || platform.browser === "Edge") {
-    return secureContext || location.hostname === "localhost" ? "安装支持强" : "仅临时访问";
-  }
-  if (platform.browser === "Brave" || platform.browser === "Opera") {
-    return secureContext || location.hostname === "localhost" ? "安装支持中" : "仅临时访问";
-  }
-  if (platform.browser === "Safari") {
-    return platform.isMac ? "部分支持" : "主屏幕路径";
-  }
-  if (platform.browser === "Firefox") {
-    return "浏览优先";
-  }
-  return "视浏览器而定";
-}
-
-function getSupportTone(level) {
-  if (["安装支持强", "主屏幕路径", "已激活", "支持", "是", "standalone", "可用"].includes(level)) {
-    return "tone-strong";
-  }
-  if (["安装支持中", "菜单安装", "部分支持", "已注册", "browser"].includes(level)) {
-    return "tone-medium";
-  }
-  if (["仅临时访问", "浏览优先", "不可用", "注册失败", "否", "不支持"].includes(level)) {
-    return "tone-weak";
-  }
-  return "tone-neutral";
-}
-
 function getDisplayModeLabel() {
   if (platform.isStandalone) {
     return "standalone";
@@ -226,14 +120,88 @@ function getDisplayModeLabel() {
   return "unknown";
 }
 
-function getDebugPayload(secureContext) {
+function getSupportLevel() {
+  if (platform.isIOS) {
+    return "主屏幕路径";
+  }
+  if (platform.isAndroid) {
+    if (window.isSecureContext && state.deferredPrompt) {
+      return "安装支持强";
+    }
+    return window.isSecureContext ? "菜单安装" : "仅临时访问";
+  }
+  if (platform.browser === "Chrome" || platform.browser === "Edge") {
+    return window.isSecureContext || location.hostname === "localhost" ? "安装支持强" : "仅临时访问";
+  }
+  if (platform.browser === "Brave" || platform.browser === "Opera") {
+    return window.isSecureContext || location.hostname === "localhost" ? "安装支持中" : "仅临时访问";
+  }
+  if (platform.browser === "Safari") {
+    return platform.isMac ? "部分支持" : "主屏幕路径";
+  }
+  if (platform.browser === "Firefox") {
+    return "浏览优先";
+  }
+  return "视浏览器而定";
+}
+
+function getTone(level) {
+  if (["安装支持强", "主屏幕路径", "HTTPS 已启用", "可信环境", "Windows", "macOS", "Linux", "iOS / iPadOS", "Android"].includes(level)) {
+    return "tone-strong";
+  }
+  if (["安装支持中", "菜单安装", "部分支持", "需信任证书", "桌面设备", "移动设备"].includes(level)) {
+    return "tone-medium";
+  }
+  if (["仅临时访问", "浏览优先", "HTTP 模式", "存在风险提示"].includes(level)) {
+    return "tone-weak";
+  }
+  return "tone-neutral";
+}
+
+function setPill(element, text, tone) {
+  element.textContent = text;
+  element.className = `hero-pill ${tone}`;
+}
+
+function updateTopPills() {
+  const support = getSupportLevel();
+  const security = window.isSecureContext ? "可信环境" : (location.protocol === "https:" ? "需信任证书" : "HTTP 模式");
+  setPill(platformPill, `${describePlatform()} · ${platform.browser}`, getTone(describePlatform()));
+  setPill(supportPill, support, getTone(support));
+  setPill(securityPill, security, getTone(security));
+}
+
+function createActionButton(label, className, handler) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+  button.addEventListener("click", handler);
+  return button;
+}
+
+function openModal({ eyebrow, title, content, actions = [] }) {
+  modalEyebrow.textContent = eyebrow;
+  modalTitle.textContent = title;
+  modalContent.innerHTML = content;
+  modalActions.innerHTML = "";
+  for (const action of actions) {
+    modalActions.appendChild(action);
+  }
+  modalRoot.hidden = false;
+}
+
+function closeModal() {
+  modalRoot.hidden = true;
+}
+
+function getDebugPayload() {
   return {
     platform: describePlatform(),
     browser: platform.browser,
-    support: getSupportLevel(secureContext),
     protocol: location.protocol,
     host: location.host,
-    secureContext,
+    secureContext: window.isSecureContext,
     displayMode: getDisplayModeLabel(),
     standalone: platform.isStandalone,
     deferredPromptAvailable: Boolean(state.deferredPrompt),
@@ -241,146 +209,46 @@ function getDebugPayload(secureContext) {
     touch: platform.isTouch,
     viewportWidth: window.innerWidth,
     viewportHeight: window.innerHeight,
-    userAgent,
   };
 }
 
-function updateRuntimeCards(secureContext) {
-  runtimePlatformEl.textContent = describePlatform();
-  runtimeBrowserEl.textContent = platform.browser;
-  runtimeSupportEl.textContent = getSupportLevel(secureContext);
-  runtimeProtocolEl.textContent = location.protocol.replace(":", "");
-  runtimeSecureContextEl.textContent = secureContext ? "是" : "否";
-  runtimeDisplayModeEl.textContent = getDisplayModeLabel();
-  runtimeInstallPromptEl.textContent = state.deferredPrompt ? "可用" : "不可用";
-  runtimeServiceWorkerEl.textContent = state.serviceWorkerState;
-  runtimeTouchEl.textContent = platform.isTouch ? "支持" : "不支持";
-  [
-    runtimePlatformEl,
-    runtimeBrowserEl,
-    runtimeProtocolEl,
-    runtimeDisplayModeEl,
-  ].forEach((el) => setChipTone(el, "tone-neutral"));
-  setChipTone(runtimeSupportEl, getSupportTone(runtimeSupportEl.textContent));
-  setChipTone(runtimeSecureContextEl, getSupportTone(runtimeSecureContextEl.textContent));
-  setChipTone(runtimeInstallPromptEl, getSupportTone(runtimeInstallPromptEl.textContent));
-  setChipTone(runtimeServiceWorkerEl, getSupportTone(runtimeServiceWorkerEl.textContent));
-  setChipTone(runtimeTouchEl, getSupportTone(runtimeTouchEl.textContent));
-  debugDetailsEl.textContent = JSON.stringify(getDebugPayload(secureContext), null, 2);
+async function copyText(text, successMessage) {
+  try {
+    await navigator.clipboard.writeText(text);
+    installHint.textContent = successMessage;
+  } catch {
+    installHint.textContent = "复制失败，请手动复制。";
+  }
 }
 
-function setActionButtons(primaryLabel, primaryHandler, secondaryLabel, secondaryHandler, lead) {
-  nextActionLeadEl.textContent = lead;
-  primaryActionButton.textContent = primaryLabel;
-  primaryActionButton.onclick = primaryHandler;
-  if (secondaryLabel && secondaryHandler) {
-    secondaryActionButton.hidden = false;
-    secondaryActionButton.textContent = secondaryLabel;
-    secondaryActionButton.onclick = secondaryHandler;
-    return;
-  }
+async function clearLocalSiteData() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
 
-  secondaryActionButton.hidden = true;
-  secondaryActionButton.onclick = null;
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+    }
+
+    localStorage.removeItem(bestScoreKey);
+    sessionStorage.clear();
+    installHint.textContent = "本地缓存已清理，正在刷新页面。";
+    window.location.reload();
+  } catch {
+    installHint.textContent = "清理本地缓存失败，请改用浏览器开发者工具手动清理。";
+  }
 }
 
-function updateDecisionCards(secureContext) {
-  if (platform.isIOS) {
-    setDecisionCard(mainPathTitleEl, mainPathTextEl, "Safari 添加到主屏幕", "主路径是 Safari 的“共享 -> 添加到主屏幕”，它是 iOS / iPadOS 最稳定的安装方式。");
-    setDecisionCard(fallbackPathTitleEl, fallbackPathTextEl, "继续访问后手动安装", "若当前链接有风险提示，可先继续访问，再按主屏幕路径完成安装。");
-    setDecisionCard(avoidPathTitleEl, avoidPathTextEl, "不要等待标准安装弹窗", "iOS / iPadOS 通常不是通过桌面 Chromium 那种标准安装弹窗来完成安装。" );
-    setActionButtons(
-      "查看主屏幕安装",
-      () => installGuide.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      "安装 iOS 证书",
-      () => downloadCertButton.click(),
-      "当前环境最推荐的下一步是使用 Safari 的主屏幕安装路径。",
-    );
-    return;
-  }
-
-  if (platform.isAndroid) {
-    setDecisionCard(mainPathTitleEl, mainPathTextEl, state.deferredPrompt && secureContext ? "浏览器原生安装" : "浏览器菜单安装", state.deferredPrompt && secureContext
-      ? "当前环境支持原生安装，优先使用页面按钮或浏览器原生安装入口。"
-      : "如果没有原生安装入口，主路径改为浏览器菜单中的“添加到主屏幕”或“安装应用”。");
-    setDecisionCard(fallbackPathTitleEl, fallbackPathTextEl, "可信 HTTPS", "如果你要稳定验证 Android 安装能力，请尽量使用可信 HTTPS 地址。");
-    setDecisionCard(avoidPathTitleEl, avoidPathTextEl, "不建议主推证书安装", "Android 更适合可信 HTTPS + 浏览器原生安装，而不是把证书导入当主路径。" );
-    setActionButtons(
-      state.deferredPrompt && secureContext ? "安装到主屏幕" : "查看菜单安装步骤",
-      () => {
-        if (state.deferredPrompt && secureContext) {
-          installButton.click();
-          return;
-        }
-        installGuide.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      },
-      secureContext ? null : "查看证书说明",
-      secureContext ? null : () => certificateGuide.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      state.deferredPrompt && secureContext
-        ? "当前环境已具备较强的 Android 安装条件。"
-        : "当前环境更适合通过浏览器菜单完成安装。",
-    );
-    return;
-  }
-
-  if (platform.browser === "Firefox") {
-    setDecisionCard(mainPathTitleEl, mainPathTextEl, "改用 Chromium 主路径", "桌面端主路径建议切到 Chrome 或 Edge，以获得更完整的安装入口。" );
-    setDecisionCard(fallbackPathTitleEl, fallbackPathTextEl, "当前浏览器可继续浏览", "Firefox 更适合浏览和调试普通页面功能。" );
-    setDecisionCard(avoidPathTitleEl, avoidPathTextEl, "不推荐当桌面安装主路径", "Firefox 通常不是桌面 Web App 安装的主验证浏览器。" );
-    setActionButtons(
-      "查看桌面差异",
-      () => desktopGuide.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      "复制诊断信息",
-      () => copyDebugButton.click(),
-      "当前浏览器更适合作为浏览与调试路径，而不是安装主路径。",
-    );
-    return;
-  }
-
-  if (platform.browser === "Safari") {
-    setDecisionCard(mainPathTitleEl, mainPathTextEl, "桌面 Safari 仅作部分验证", "桌面 Safari 可验证普通访问与部分站点应用能力，但安装体验通常不如 Chromium 完整。" );
-    setDecisionCard(fallbackPathTitleEl, fallbackPathTextEl, "改用 Chrome / Edge", "如果你要验证更完整的桌面安装入口，建议切到 Chrome 或 Edge。" );
-    setDecisionCard(avoidPathTitleEl, avoidPathTextEl, "不要只在 Safari 验收", "桌面 Safari 不适合作为唯一桌面安装验收路径。" );
-    setActionButtons(
-      "查看桌面差异",
-      () => desktopGuide.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      secureContext ? null : "查看证书说明",
-      secureContext ? null : () => desktopGuide.scrollIntoView({ behavior: "smooth", block: "nearest" }),
-      "当前浏览器适合部分验证，但更完整的桌面安装建议用 Chromium 浏览器。",
-    );
-    return;
-  }
-
-  setDecisionCard(mainPathTitleEl, mainPathTextEl, "Chromium 原生安装", secureContext || location.hostname === "localhost"
-    ? "当前浏览器与地址条件更接近桌面 Web App 主路径。优先使用浏览器原生安装入口。"
-    : "当前浏览器较适合作为桌面安装主路径，但当前地址条件还不够稳定。" );
-  setDecisionCard(fallbackPathTitleEl, fallbackPathTextEl, "切回 localhost 或可信 HTTPS", "如果安装入口未出现，优先检查当前是否仍在 localhost 或可信 HTTPS 地址上。" );
-  setDecisionCard(avoidPathTitleEl, avoidPathTextEl, "不要把临时地址当正式路径", "不安全网络地址更适合调试访问，不适合作为稳定安装主路径。" );
-  setActionButtons(
-    state.deferredPrompt ? "安装桌面应用" : "查看桌面说明",
-    () => {
-      if (state.deferredPrompt) {
-        installButton.click();
-        return;
-      }
-      desktopGuide.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    },
-    desktopCommands.hidden ? null : "复制桌面命令",
-    desktopCommands.hidden ? null : () => copyDesktopCommandsButton.click(),
-    state.deferredPrompt
-      ? "当前环境已接近桌面安装主路径。"
-      : "当前环境还可继续优化，优先检查地址、安全上下文和浏览器支持度。",
-  );
-}
-
-function getDesktopCertificateCommands() {
+function getDesktopCommands() {
   if (platform.isWindows) {
     return [
       "powershell -ExecutionPolicy Bypass -File .\\scripts\\generate-cert.ps1 -ProjectRoot .\\examples\\orbit-dash-pwa",
       'node "examples/orbit-dash-pwa/server.js"',
     ].join("\n");
   }
-
   if (platform.isMac) {
     return [
       "powershell -ExecutionPolicy Bypass -File ./scripts/generate-cert.ps1 -ProjectRoot ./examples/orbit-dash-pwa",
@@ -388,7 +256,6 @@ function getDesktopCertificateCommands() {
       'node "examples/orbit-dash-pwa/server.js"',
     ].join("\n");
   }
-
   if (platform.isLinux) {
     return [
       "powershell -ExecutionPolicy Bypass -File ./scripts/generate-cert.ps1 -ProjectRoot ./examples/orbit-dash-pwa",
@@ -396,191 +263,226 @@ function getDesktopCertificateCommands() {
       'node "examples/orbit-dash-pwa/server.js"',
     ].join("\n");
   }
-
   return "";
 }
 
-function updateCertificateDownloadLink() {
-  if (platform.isIOS) {
-    downloadCertButton.href = "/ios-root-ca.mobileconfig";
-    downloadCertButton.textContent = "安装 iOS 证书";
+function showInstallModal() {
+  const actions = [];
+  let body = "";
+
+  if (platform.isStandalone) {
+    body = platform.isMobile
+      ? `
+        <h3>当前已安装</h3>
+        <p>当前页面已经通过主屏幕入口打开。</p>
+        <ol>
+          <li>返回系统主屏幕。</li>
+          <li>长按当前图标。</li>
+          <li>选择删除 App 或移除图标。</li>
+        </ol>
+      `
+      : `
+        <h3>当前已安装</h3>
+        <p>当前页面已经通过桌面或系统应用入口打开。</p>
+        <ol>
+          <li>在桌面、开始菜单、应用列表或浏览器站点应用列表中找到当前入口。</li>
+          <li>按当前系统方式执行卸载或删除快捷方式。</li>
+          <li>卸载后重新用浏览器访问时，会回到普通网页模式。</li>
+        </ol>
+      `;
+    actions.push(createActionButton("关闭", "ghost-button", closeModal));
+    openModal({
+      eyebrow: "Installed",
+      title: "卸载说明",
+      content: body,
+      actions,
+    });
     return;
   }
 
-  downloadCertButton.href = "/root-ca-cert.cer";
-  downloadCertButton.textContent = "下载根证书";
+  if (platform.isIOS) {
+    body = `
+      <h3>主路径</h3>
+      <ol>
+        <li>请使用 Safari 打开当前页面。</li>
+        <li>点击底部“共享”。</li>
+        <li>选择“添加到主屏幕”。</li>
+        <li>确认名称后点击“添加”。</li>
+      </ol>
+      <p>iOS / iPadOS 一般不是通过桌面 Chromium 那种标准安装弹窗完成安装。</p>
+    `;
+  } else if (platform.isAndroid) {
+    body = state.deferredPrompt && window.isSecureContext
+      ? `
+        <h3>主路径</h3>
+        <p>当前浏览器支持原生安装。优先使用页面内安装按钮或浏览器原生入口。</p>
+        <p>如果浏览器菜单也提供安装应用入口，优先使用原生入口。</p>
+      `
+      : `
+        <h3>主路径</h3>
+        <ol>
+          <li>优先查找浏览器原生安装入口。</li>
+          <li>如果没有，打开浏览器菜单。</li>
+          <li>选择“添加到主屏幕”或“安装应用”。</li>
+        </ol>
+        <p>${window.isSecureContext ? "当前环境可继续用菜单安装。" : "当前环境更适合临时访问，若要稳定安装建议切到可信 HTTPS。"}</p>
+      `;
+  } else if (platform.browser === "Firefox") {
+    body = `
+      <h3>当前浏览器</h3>
+      <p>Firefox 更适合作为浏览与调试浏览器，不建议作为桌面安装主路径。</p>
+      <p>主路径建议切到 Chrome 或 Edge。</p>
+    `;
+  } else if (platform.browser === "Safari") {
+    body = `
+      <h3>当前浏览器</h3>
+      <p>桌面 Safari 可验证普通访问与部分站点应用能力，但安装体验通常不如 Chromium 完整。</p>
+      <p>若要验证更完整的桌面安装入口，建议改用 Chrome 或 Edge。</p>
+    `;
+  } else {
+    body = state.deferredPrompt
+      ? `
+        <h3>主路径</h3>
+        <p>当前浏览器已具备桌面安装条件，可直接生成桌面应用入口。</p>
+        <ol>
+          <li>点击下方“现在安装”。</li>
+          <li>确认安装后，会创建桌面或系统应用入口。</li>
+          <li>以后可直接从图标再次打开。</li>
+        </ol>
+      `
+      : `
+        <h3>当前状态</h3>
+        <p>当前浏览器或地址条件还没有给出安装入口。</p>
+        <ol>
+          <li>优先使用 Chrome 或 Edge。</li>
+          <li>优先使用默认 HTTPS 地址或 localhost。</li>
+          <li>如果需要信任证书，请查看“信任证书”。</li>
+        </ol>
+      `;
+  }
+
+  if (state.deferredPrompt && !platform.isIOS) {
+    actions.push(createActionButton(platform.isAndroid ? "现在安装到主屏幕" : "现在安装到桌面", "primary-button", async () => {
+      await state.deferredPrompt.prompt();
+      state.deferredPrompt = null;
+      closeModal();
+      updateShell();
+    }));
+  }
+
+  actions.push(createActionButton("关闭", "ghost-button", closeModal));
+
+  openModal({
+    eyebrow: "Install",
+    title: "安装到桌面 / 主屏幕",
+    content: body,
+    actions,
+  });
 }
 
-function refreshShellMode() {
+function showTrustModal() {
+  const commands = getDesktopCommands();
+  const canDownloadIosProfile = platform.isIOS;
+  let body = "";
+  const actions = [];
+
+  if (platform.isIOS) {
+    body = `
+      <h3>iOS / iPadOS 证书路径</h3>
+      <ol>
+        <li>下载 iOS 证书描述文件。</li>
+        <li>前往“设置 -> 通用 -> VPN 与设备管理”完成安装。</li>
+        <li>再到“设置 -> 通用 -> 关于本机 -> 证书信任设置”中开启完全信任。</li>
+      </ol>
+      <p>完成后刷新页面，不安全提示通常会减少，安装路径也会更稳定。</p>
+    `;
+    actions.push(createActionButton("下载 iOS 证书", "secondary-button", () => {
+      window.location.href = "/ios-root-ca.mobileconfig";
+    }));
+  } else if (platform.isAndroid) {
+    body = `
+      <h3>Android 提示</h3>
+      <p>Android 默认更适合走“可信 HTTPS + 浏览器原生安装”路径。</p>
+      <p>如果你只是临时访问页面，可以先继续访问；如果你要稳定验证安装能力，建议先把当前地址切到可信 HTTPS。</p>
+      <p>不建议把导入本地证书作为 Android 默认用户路径。</p>
+    `;
+  } else {
+    body = `
+      <h3>${escapeHtml(describePlatform())} 证书路径</h3>
+      <p>当前桌面端建议先生成本地证书，再按当前系统导入信任根。</p>
+      <ol>
+        <li>先运行证书生成脚本。</li>
+        <li>再按当前系统使用导入脚本或系统证书工具。</li>
+        <li>导入后重开浏览器，再访问默认 HTTPS 地址。</li>
+      </ol>
+      ${commands ? `<pre class="command-block">${escapeHtml(commands)}</pre>` : ""}
+    `;
+    if (commands) {
+      actions.push(createActionButton("复制桌面命令", "secondary-button", () => {
+        copyText(commands, "桌面证书命令已复制。");
+      }));
+    }
+  }
+
+  if (!canDownloadIosProfile && !platform.isMobile) {
+    actions.push(createActionButton("下载根证书", "ghost-button", () => {
+      window.location.href = "/root-ca-cert.cer";
+    }));
+  }
+
+  actions.push(createActionButton("关闭", "ghost-button", closeModal));
+
+  openModal({
+    eyebrow: "Trust",
+    title: "信任证书",
+    content: body,
+    actions,
+  });
+}
+
+function showSettingsModal() {
+  const debugPayload = getDebugPayload();
+  const body = `
+    <div class="summary-list">
+      <div class="summary-item"><span class="summary-key">平台</span><strong class="summary-value">${escapeHtml(debugPayload.platform)}</strong></div>
+      <div class="summary-item"><span class="summary-key">浏览器</span><strong class="summary-value">${escapeHtml(debugPayload.browser)}</strong></div>
+      <div class="summary-item"><span class="summary-key">协议</span><strong class="summary-value">${escapeHtml(debugPayload.protocol)}</strong></div>
+      <div class="summary-item"><span class="summary-key">安全</span><strong class="summary-value">${debugPayload.secureContext ? "可信" : "待信任"}</strong></div>
+      <div class="summary-item"><span class="summary-key">显示模式</span><strong class="summary-value">${escapeHtml(debugPayload.displayMode)}</strong></div>
+      <div class="summary-item"><span class="summary-key">安装事件</span><strong class="summary-value">${debugPayload.deferredPromptAvailable ? "可用" : "不可用"}</strong></div>
+    </div>
+    <h3>当前说明</h3>
+    <p>默认优先 HTTPS 访问。当前服务会在可行时自动使用或生成本地证书；如果浏览器仍提示不安全，请通过“信任证书”处理。</p>
+    <p>如果页面样式或按钮看起来像旧版本，即使服务已停止仍可打开，通常是旧的 Service Worker 和 Cache Storage 还在生效。此时可直接使用下方“清理本地缓存并刷新”。</p>
+    <details class="debug-details">
+      <summary>查看完整诊断信息</summary>
+      <pre class="command-block">${escapeHtml(JSON.stringify(debugPayload, null, 2))}</pre>
+    </details>
+  `;
+
+  openModal({
+    eyebrow: "Settings",
+    title: "设置与诊断",
+    content: body,
+    actions: [
+      createActionButton("清理本地缓存并刷新", "primary-button", clearLocalSiteData),
+      createActionButton("复制诊断信息", "secondary-button", () => copyText(JSON.stringify(debugPayload, null, 2), "环境诊断信息已复制。")),
+      createActionButton("关闭", "ghost-button", closeModal),
+    ],
+  });
+}
+
+function updateShell() {
   platform.isMobile = platform.isIOS || platform.isAndroid || window.innerWidth <= 820;
   platform.isStandalone = displayModeStandalone.matches || window.navigator.standalone === true;
   document.body.classList.toggle("is-mobile", platform.isMobile);
   document.body.classList.toggle("is-desktop", !platform.isMobile);
   document.body.classList.toggle("is-standalone", platform.isStandalone);
-}
-
-function describeDevice() {
-  if (platform.isIOS) {
-    return "iOS / iPadOS";
-  }
-  if (platform.isAndroid) {
-    return "Android";
-  }
-  if (platform.isMobile) {
-    return "移动浏览器";
-  }
-  return "桌面浏览器";
-}
-
-function updateInstallUi() {
-  refreshShellMode();
-  const secureContext = window.isSecureContext;
-  updateCertificateDownloadLink();
-  updateRuntimeCards(secureContext);
-  setCertificateGuide("证书步骤", "先完成证书信任，浏览器才能把当前页面当作真正安全站点。", [], false);
-  setDesktopGuide("桌面提示", "桌面端会根据当前系统和浏览器显示更细的安装与证书说明。", [], "");
-  updateDecisionCards(secureContext);
-
-  if (platform.isStandalone) {
-    installButton.hidden = true;
-    installHint.textContent = "你正在通过桌面或主屏幕图标打开。";
-    setInstallGuide(`${describeDevice()} · 已安装`, ["现在它会以独立窗口打开，使用方式更接近原生应用。"]);
-    if (!platform.isMobile) {
-      setDesktopGuide(`${describePlatform()} · 已安装`, "当前窗口已经以站点应用或独立窗口模式运行。", [
-        "此时说明系统里已有桌面入口，后续可直接从图标打开。",
-      ], "");
-    }
-    updateDecisionCards(secureContext);
-    return;
-  }
-
-  if (platform.isIOS) {
-    installButton.hidden = false;
-    installButton.textContent = "查看主屏幕安装";
-    installHint.textContent = "iOS / iPadOS 请通过 Safari 的“共享 -> 添加到主屏幕”完成安装。";
-    setInstallGuide(`${describeDevice()} · Safari`, [
-      "请用 Safari 打开当前页面。",
-      "点击底部“共享”按钮。",
-      "选择“添加到主屏幕”。",
-      "确认名称后点击“添加”，以后就能直接从主屏幕进入。",
-    ]);
-    setCertificateGuide(
-      `${describeDevice()} · 可选证书步骤`,
-      secureContext
-        ? "如果你只想添加到主屏幕，可以直接继续。若想减少安全提示并获得更稳定的本地 HTTPS 体验，可选安装 iOS 证书。"
-        : "当前链接还没有被 iOS / iPadOS 完全信任。你仍可继续访问并添加到主屏幕；如果想减少不安全提示，可以先安装并信任 iOS 证书。",
-      [
-        "点击“安装 iOS 证书”。",
-        "前往“设置 -> 通用 -> VPN 与设备管理”完成安装。",
-        "再到“设置 -> 通用 -> 关于本机 -> 证书信任设置”中开启完全信任。",
-        "回到当前页面后点击“我已处理，重新检查”。",
-      ],
-      true,
-    );
-    updateDecisionCards(secureContext);
-    return;
-  }
-
-  if (platform.isAndroid) {
-    if (state.deferredPrompt && secureContext) {
-      installButton.hidden = false;
-      installButton.textContent = "安装到主屏幕";
-      installHint.textContent = "当前浏览器支持安装，可以直接添加到主屏幕。";
-      setInstallGuide(`${describeDevice()} · 可直接安装`, [
-        "点击上方安装按钮。",
-        "确认后会自动创建主屏幕入口。",
-        "如果浏览器菜单里也有“安装应用”，优先使用原生入口。",
-      ]);
-      updateDecisionCards(secureContext);
-      return;
-    }
-
-    installButton.hidden = true;
-    installHint.textContent = secureContext
-      ? "如果浏览器没有直接显示安装按钮，请打开浏览器菜单，选择“添加到主屏幕”或“安装应用”。"
-      : "当前链接安全性不足，Android 浏览器通常不会提供完整安装入口。你可以临时继续访问；如需稳定安装，请改用可信 HTTPS。";
-    setInstallGuide(`${describeDevice()} · 浏览器菜单安装`, [
-      secureContext
-        ? "优先查找浏览器原生的“安装应用”或“添加到主屏幕”。"
-        : "当前地址更适合临时调试，不适合作为稳定安装入口。",
-      "如果浏览器没有自动弹出安装提示，请打开右上角菜单。",
-      "选择“添加到主屏幕”或“安装应用”。",
-    ]);
-    updateDecisionCards(secureContext);
-    return;
-  }
-
-  if (platform.browser === "Firefox") {
-    installButton.hidden = true;
-    installHint.textContent = "当前是 Firefox。它更适合作为浏览与调试浏览器，不建议作为桌面安装主路径。";
-    setInstallGuide(`${describePlatform()} · Firefox`, [
-      "建议改用 Chrome 或 Edge 获取更完整的桌面安装体验。",
-      "当前浏览器仍可用于浏览页面和调试普通功能。",
-    ]);
-    setDesktopGuide(`${describePlatform()} · 浏览器差异`, "当前浏览器支持度较弱，示例会给出建议路径。", [
-      "主路径：Chrome / Edge。",
-      "备选路径：Brave / Opera。",
-      "当前浏览器：更适合浏览与调试，不建议作为安装主路径。",
-    ], "");
-    updateDecisionCards(secureContext);
-    return;
-  }
-
-  if (platform.browser === "Safari") {
-    installButton.hidden = true;
-    installHint.textContent = "当前是桌面 Safari。可用部分能力，但安装体验通常不如 Chromium 完整。";
-    setInstallGuide(`${describePlatform()} · Safari`, [
-      "如果你只验证普通访问与部分站点应用能力，当前浏览器可以继续使用。",
-      "如果你要验证更完整的安装入口，建议改用 Chrome 或 Edge。",
-    ]);
-    setDesktopGuide(`${describePlatform()} · Safari`, "桌面 Safari 可用部分能力，但不建议作为唯一安装验证路径。", [
-      "主路径：Chrome / Edge。",
-      "当前浏览器：可浏览与验证部分能力。",
-      secureContext ? "若需消除安全提示，先把根证书导入系统钥匙串。" : "若当前地址不安全，先使用可信 HTTPS。",
-    ], platform.isMac ? getDesktopCertificateCommands() : "");
-    updateDecisionCards(secureContext);
-    return;
-  }
-
-  if (state.deferredPrompt) {
-    installButton.hidden = false;
-    installButton.textContent = "安装桌面应用";
-    installHint.textContent = "当前浏览器支持安装，可直接生成桌面应用入口。";
-    setInstallGuide(`${describeDevice()} · 可直接安装`, [
-      "点击上方安装按钮。",
-      "确认后会自动创建桌面应用入口。",
-      "以后可直接从桌面图标打开，不必先进入浏览器页面。",
-    ]);
-    setDesktopGuide(`${describePlatform()} · ${platform.browser}`, "当前组合适合作为桌面安装主路径。", [
-      "当前浏览器通常会提供标准安装入口。",
-      secureContext || location.hostname === "localhost"
-        ? "当前地址条件满足后，桌面安装体验通常较稳定。"
-        : "若当前地址不是 localhost 或可信 HTTPS，安装入口可能不出现。",
-    ], !secureContext && location.hostname !== "localhost" ? getDesktopCertificateCommands() : "");
-    updateDecisionCards(secureContext);
-    return;
-  }
-
-  installButton.hidden = true;
-  installHint.textContent = secureContext || location.hostname === "localhost"
-    ? "如果当前浏览器支持安装，地址栏或菜单里会出现“安装应用”入口。"
-    : "当前地址通常不满足桌面安装条件。开发时优先使用 localhost 或可信 HTTPS 地址。";
-  setInstallGuide(`${describeDevice()} · 浏览器模式`, [
-    secureContext || location.hostname === "localhost"
-      ? "推荐用 Chrome 或 Edge 打开，以获得更完整的桌面安装体验。"
-      : "当前地址更适合浏览调试，不适合作为稳定桌面安装入口。",
-  ]);
-  setDesktopGuide(`${describePlatform()} · ${platform.browser}`, secureContext || location.hostname === "localhost"
-    ? "当前组合可继续浏览与测试；如果浏览器未给安装按钮，请检查浏览器支持度与安装条件。"
-    : "当前地址条件不足，更适合作为临时访问或调试路径。", [
-    secureContext || location.hostname === "localhost"
-      ? "优先用 Chrome / Edge 获取桌面安装入口。"
-      : "优先切回 localhost 或可信 HTTPS 地址。",
-    platform.browser === "Brave" || platform.browser === "Opera"
-      ? "当前浏览器通常可用，但入口位置和行为可能与 Chrome 不完全一致。"
-      : "如果你当前浏览器不提供安装入口，请尝试主路径浏览器。",
-  ], !secureContext && location.hostname !== "localhost" ? getDesktopCertificateCommands() : "");
-  updateDecisionCards(secureContext);
+  updateTopPills();
+  openInstallButton.textContent = platform.isStandalone ? "卸载说明" : "安装到桌面";
+  installHint.textContent = platform.isStandalone
+    ? "当前正在通过桌面或主屏幕入口打开。"
+    : (window.isSecureContext ? "当前默认处于 HTTPS 或可信环境。" : "当前可访问，但若要稳定安装建议先确保 HTTPS 被信任。");
 }
 
 function resetGame() {
@@ -608,7 +510,6 @@ function setMovement(direction, active) {
     }
     return;
   }
-
   state.player.vx = direction * speed;
 }
 
@@ -716,7 +617,6 @@ function drawStatusText() {
   if (state.running) {
     return;
   }
-
   ctx.save();
   ctx.textAlign = "center";
   ctx.fillStyle = "rgba(232, 237, 255, 0.9)";
@@ -724,7 +624,7 @@ function drawStatusText() {
   ctx.fillText("点击开始游戏", canvas.width / 2, 100);
   ctx.font = "400 16px Inter, Segoe UI, sans-serif";
   ctx.fillStyle = "rgba(159, 176, 223, 0.95)";
-  ctx.fillText("安装后它会像桌面应用一样独立打开", canvas.width / 2, 132);
+  ctx.fillText("右上角可查看安装、证书与设置", canvas.width / 2, 132);
   ctx.restore();
 }
 
@@ -747,73 +647,34 @@ function loop(timestamp) {
 }
 
 function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js")
-      .then((registration) => {
-        state.serviceWorkerState = registration.active ? "已激活" : "已注册";
-        updateInstallUi();
-      })
-      .catch(() => {
-        state.serviceWorkerState = "注册失败";
-        installHint.textContent = "Service Worker 注册失败，安装和离线能力可能不可用。";
-        updateInstallUi();
-      });
+  if (!("serviceWorker" in navigator)) {
+    state.serviceWorkerState = "不支持";
+    updateShell();
     return;
   }
-
-  state.serviceWorkerState = "不支持";
+  navigator.serviceWorker.register("/sw.js")
+    .then((registration) => {
+      state.serviceWorkerState = registration.active ? "已激活" : "已注册";
+      updateShell();
+    })
+    .catch(() => {
+      state.serviceWorkerState = "注册失败";
+      updateShell();
+    });
 }
 
 function setupInstallPrompt() {
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     state.deferredPrompt = event;
-    updateInstallUi();
+    updateShell();
   });
 
   window.addEventListener("appinstalled", () => {
     state.deferredPrompt = null;
-    updateInstallUi();
+    updateShell();
   });
-
-  installButton.addEventListener("click", async () => {
-    if (platform.isIOS) {
-      installGuide.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      return;
-    }
-
-    if (!state.deferredPrompt) {
-      return;
-    }
-    await state.deferredPrompt.prompt();
-    state.deferredPrompt = null;
-    updateInstallUi();
-  });
-
-  if (typeof displayModeStandalone.addEventListener === "function") {
-    displayModeStandalone.addEventListener("change", updateInstallUi);
-  } else if (typeof displayModeStandalone.addListener === "function") {
-    displayModeStandalone.addListener(updateInstallUi);
-  }
 }
-
-refreshTrustButton.addEventListener("click", () => {
-  window.location.reload();
-});
-
-copyDesktopCommandsButton.addEventListener("click", async () => {
-  await copyText(desktopCommands.textContent, "桌面证书与启动命令已复制。");
-});
-
-copyDebugButton.addEventListener("click", async () => {
-  await copyText(debugDetailsEl.textContent, "环境诊断信息已复制。");
-});
-
-downloadCertButton.addEventListener("click", () => {
-  installHint.textContent = platform.isIOS
-    ? "描述文件下载后，请前往设置完成安装，并在证书信任设置里开启完全信任。"
-    : "证书下载后，请在系统或浏览器中完成信任，再刷新页面。";
-});
 
 function bindKeyboard() {
   window.addEventListener("keydown", (event) => {
@@ -845,12 +706,22 @@ function bindTouch(button, direction) {
 }
 
 startButton.addEventListener("click", resetGame);
+openInstallButton.addEventListener("click", showInstallModal);
+openTrustButton.addEventListener("click", showTrustModal);
+openSettingsButton.addEventListener("click", showSettingsModal);
+closeModalButton.addEventListener("click", closeModal);
+modalRoot.addEventListener("click", (event) => {
+  if (event.target.dataset.closeModal === "true") {
+    closeModal();
+  }
+});
+
 bindKeyboard();
 bindTouch(leftButton, -1);
 bindTouch(rightButton, 1);
 setupInstallPrompt();
 registerServiceWorker();
-window.addEventListener("resize", updateInstallUi);
-updateInstallUi();
+updateShell();
+window.addEventListener("resize", updateShell);
 render();
 requestAnimationFrame(loop);

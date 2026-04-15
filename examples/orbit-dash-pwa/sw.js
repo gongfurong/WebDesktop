@@ -1,4 +1,4 @@
-const CACHE_NAME = "orbit-dash-v1";
+const CACHE_NAME = "orbit-dash-v2";
 const ASSETS = [
   "/",
   "/index.html",
@@ -28,8 +28,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const requestUrl = new URL(event.request.url);
+  const isAppShellAsset = requestUrl.origin === self.location.origin && [
+    "/",
+    "/index.html",
+    "/styles.css",
+    "/app.js",
+    "/manifest.json",
+    "/sw.js",
+  ].includes(requestUrl.pathname);
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
+    (isAppShellAsset ? fetch(event.request).then((response) => {
+      if (response.ok && response.type === "basic") {
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+      }
+      return response;
+    }).catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html"))) : caches.match(event.request).then((cached) => {
       if (cached) {
         return cached;
       }
@@ -45,6 +61,6 @@ self.addEventListener("fetch", (event) => {
           return response;
         })
         .catch(() => caches.match("/index.html"));
-    }),
+    })),
   );
 });

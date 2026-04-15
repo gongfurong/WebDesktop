@@ -18,13 +18,20 @@
   <body>
     <main class="app-shell">
       <section class="hero">
-        <p class="eyebrow">Progressive Web App Demo</p>
-        <div class="hero-row">
-          <div>
-            <h1>Orbit Dash</h1>
-            <p class="subtitle">一个可从桌面或主屏幕直接进入的轻量网页游戏示例。</p>
+        <div>
+          <p class="eyebrow">Progressive Web Game</p>
+          <h1>Orbit Dash</h1>
+          <p class="subtitle">躲开下落方块，顺便验证桌面安装、主屏幕入口和本地 HTTPS 流程。</p>
+          <div class="hero-pills">
+            <span id="supportPill" class="hero-pill">检测安装支持</span>
+            <span id="securityPill" class="hero-pill">检测安全状态</span>
+            <span id="platformPill" class="hero-pill">检测平台</span>
           </div>
-          <button id="installButton" class="install-button" hidden>安装应用</button>
+        </div>
+        <div class="hero-actions">
+          <button id="openInstallButton" class="install-button" type="button">安装到桌面</button>
+          <button id="openTrustButton" class="secondary-button" type="button">信任证书</button>
+          <button id="openSettingsButton" class="ghost-button" type="button">设置</button>
         </div>
       </section>
 
@@ -43,132 +50,38 @@
         </div>
       </section>
 
-      <section class="runtime-grid" aria-label="运行环境">
-        <div class="runtime-card">
-          <span class="stat-label">平台</span>
-          <strong id="runtimePlatform" class="status-chip">检测中</strong>
-        </div>
-        <div class="runtime-card">
-          <span class="stat-label">浏览器</span>
-          <strong id="runtimeBrowser" class="status-chip">检测中</strong>
-        </div>
-        <div class="runtime-card">
-          <span class="stat-label">安装支持</span>
-          <strong id="runtimeSupport" class="status-chip">检测中</strong>
-        </div>
-      </section>
-
-      <section class="diagnostics-panel" aria-label="环境诊断">
-        <div class="diagnostics-header">
-          <div>
-            <p class="eyebrow">Environment Diagnostics</p>
-            <h2>当前环境诊断</h2>
-          </div>
-          <button id="copyDebugButton" class="ghost-button" type="button">复制诊断信息</button>
-        </div>
-        <div class="diagnostics-grid">
-          <div class="runtime-card">
-            <span class="stat-label">协议</span>
-            <strong id="runtimeProtocol" class="status-chip">检测中</strong>
-          </div>
-          <div class="runtime-card">
-            <span class="stat-label">安全上下文</span>
-            <strong id="runtimeSecureContext" class="status-chip">检测中</strong>
-          </div>
-          <div class="runtime-card">
-            <span class="stat-label">显示模式</span>
-            <strong id="runtimeDisplayMode" class="status-chip">检测中</strong>
-          </div>
-          <div class="runtime-card">
-            <span class="stat-label">安装事件</span>
-            <strong id="runtimeInstallPrompt" class="status-chip">检测中</strong>
-          </div>
-          <div class="runtime-card">
-            <span class="stat-label">Service Worker</span>
-            <strong id="runtimeServiceWorker" class="status-chip">检测中</strong>
-          </div>
-          <div class="runtime-card">
-            <span class="stat-label">触摸能力</span>
-            <strong id="runtimeTouch" class="status-chip">检测中</strong>
-          </div>
-        </div>
-        <pre id="debugDetails" class="command-block"></pre>
-      </section>
-
-      <section class="decision-grid" aria-label="推荐路径">
-        <article class="decision-card decision-card-main">
-          <span class="decision-tag">主路径</span>
-          <h2 id="mainPathTitle">检测中</h2>
-          <p id="mainPathText">正在根据当前平台与浏览器生成推荐路径。</p>
-        </article>
-        <article class="decision-card decision-card-fallback">
-          <span class="decision-tag">备选路径</span>
-          <h2 id="fallbackPathTitle">检测中</h2>
-          <p id="fallbackPathText">正在根据当前平台与浏览器生成备选路径。</p>
-        </article>
-        <article class="decision-card decision-card-avoid">
-          <span class="decision-tag">不推荐</span>
-          <h2 id="avoidPathTitle">检测中</h2>
-          <p id="avoidPathText">正在根据当前平台与浏览器生成不推荐路径。</p>
-        </article>
-      </section>
-
-      <section class="action-panel" aria-label="推荐下一步">
-        <div class="diagnostics-header">
-          <div>
-            <p class="eyebrow">Recommended Next Step</p>
-            <h2>下一步建议</h2>
-          </div>
-        </div>
-        <p id="nextActionLead" class="certificate-lead">页面会根据当前环境给出更合适的下一步。</p>
-        <div class="action-buttons">
-          <button id="primaryActionButton" class="primary-button" type="button">检测中</button>
-          <button id="secondaryActionButton" class="ghost-button" type="button" hidden>查看备选方案</button>
-        </div>
-      </section>
-
       <section class="game-panel">
         <canvas id="gameCanvas" width="420" height="640" aria-label="Orbit Dash 游戏画布"></canvas>
         <div class="overlay-card">
           <p>左右移动，避开下落方块。</p>
-          <p>桌面端：方向键或 A/D</p>
-          <p>移动端：底部虚拟按键</p>
-          <button id="startButton" class="primary-button">开始游戏</button>
+          <p>桌面端：方向键或 A / D</p>
+          <p>移动端：底部按钮</p>
+          <button id="startButton" class="primary-button" type="button">开始游戏</button>
         </div>
       </section>
 
       <section class="touch-controls" aria-label="触摸控制">
-        <button id="leftButton" class="touch-button">向左</button>
-        <button id="rightButton" class="touch-button">向右</button>
+        <button id="leftButton" class="touch-button" type="button">向左</button>
+        <button id="rightButton" class="touch-button" type="button">向右</button>
       </section>
 
-      <section id="installGuide" class="install-guide" hidden aria-live="polite">
-        <p id="platformBadge" class="platform-badge">当前设备</p>
-        <ol id="installSteps" class="install-steps"></ol>
-      </section>
-
-      <section id="certificateGuide" class="certificate-guide" hidden aria-live="polite">
-        <p id="certificateBadge" class="platform-badge">证书步骤</p>
-        <p id="certificateLead" class="certificate-lead">先完成证书信任，浏览器才能把当前页面当作真正安全站点。</p>
-        <ol id="certificateSteps" class="install-steps"></ol>
-        <div class="certificate-actions">
-          <a id="downloadCertButton" class="secondary-button" href="/root-ca-cert.cer">下载根证书</a>
-          <button id="refreshTrustButton" class="ghost-button" type="button">我已处理，重新检查</button>
-        </div>
-      </section>
-
-      <section id="desktopGuide" class="desktop-guide" hidden aria-live="polite">
-        <p id="desktopBadge" class="platform-badge">桌面提示</p>
-        <p id="desktopLead" class="certificate-lead">桌面端会根据当前系统和浏览器显示更细的安装与证书说明。</p>
-        <ol id="desktopSteps" class="install-steps"></ol>
-        <div class="certificate-actions">
-          <button id="copyDesktopCommandsButton" class="ghost-button" type="button" hidden>复制命令</button>
-        </div>
-        <pre id="desktopCommands" class="command-block" hidden></pre>
-      </section>
-
-      <p id="installHint" class="hint">页面会根据当前设备展示最合适的安装方式。</p>
+      <p id="installHint" class="sr-only" aria-live="polite">默认优先 HTTPS 访问；需要了解安装、证书或调试信息时，使用右上角按钮。</p>
     </main>
+
+    <div id="modalRoot" class="modal-root" hidden>
+      <div class="modal-backdrop" data-close-modal="true"></div>
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header class="modal-header">
+          <div>
+            <p id="modalEyebrow" class="eyebrow">Details</p>
+            <h2 id="modalTitle">说明</h2>
+          </div>
+          <button id="closeModalButton" class="ghost-button" type="button">关闭</button>
+        </header>
+        <div id="modalContent" class="modal-content"></div>
+        <div id="modalActions" class="modal-actions"></div>
+      </section>
+    </div>
 
     <script src="/app.js"></script>
   </body>
