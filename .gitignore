@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.code-workspace
+
+# Logs and temp output
+*.log
+*.out
+*.tmp
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Example local certificates and generated openssl configs
+examples/orbit-dash-pwa/certs/*.pem
+examples/orbit-dash-pwa/certs/*.cer
+examples/orbit-dash-pwa/certs/*.csr
+examples/orbit-dash-pwa/certs/*.srl
+examples/orbit-dash-pwa/certs/*.cnf
+examples/orbit-dash-pwa/certs/*.ext
+!examples/orbit-dash-pwa/certs/.gitignore
